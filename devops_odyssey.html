@@ -3706,24 +3706,6 @@ function drawTerminals(){
     ctx.fillRect(t.x+4,t.y+4,16,2);
     ctx.fillRect(t.x+4,t.y+9,16,2);
     ctx.fillRect(t.x+4,t.y+14,10,2);
-
-    // Blinking [E] above terminal when player is nearby
-    const dist = Math.hypot((t.x+12-(player.x+player.w/2)), (t.y+10-(player.y+player.h/2)));
-    if(!done && dist < 60){
-      const blink = Math.sin(time/300) > 0;
-      if(blink){
-        const ix = t.x+12, iy = t.y-22;
-        ctx.fillStyle = '#06080fee';
-        roundRect(ctx, ix-14, iy-10, 28, 12, 3); ctx.fill();
-        ctx.strokeStyle = col + 'cc'; ctx.lineWidth = 1;
-        roundRect(ctx, ix-14, iy-10, 28, 12, 3); ctx.stroke();
-        ctx.fillStyle = col;
-        ctx.font = 'bold 8px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('[E]', ix, iy);
-        ctx.textAlign = 'left';
-      }
-    }
   }
 }
 
