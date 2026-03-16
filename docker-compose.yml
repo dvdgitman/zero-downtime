@@ -1,0 +1,7 @@
+services:
+  pagerdev:
+    image: davidgman/zerodowntime:1.0.0
+    container_name: pagerdev-game
+    restart: unless-stopped
+    ports:
+      - "32712:80"
