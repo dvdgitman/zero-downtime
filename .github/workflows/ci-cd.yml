@@ -37,9 +37,14 @@ jobs:
 
       - name: 🔄 Restart container on QNAP
         run: |
-          cd /share/CACHEDEV3_DATA/Stuff/Devops-game
-          docker compose pull
-          docker compose up -d --force-recreate
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest
+          docker stop zerodowntime || true
+          docker rm zerodowntime || true
+          docker run -d \
+            --name zerodowntime \
+            --restart unless-stopped \
+            -p 32712:80 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest
 
       - name: 🧹 Cleanup old images
         run: docker image prune -f
