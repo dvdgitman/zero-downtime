@@ -2,7 +2,7 @@
 
 > A browser-based RPG where you explore server rooms, solve real DevOps incidents, and level up your cloud engineering knowledge.
 
-![Zero Downtime](https://img.shields.io/badge/version-1.0.0-00e5a0?style=flat-square) ![Docker](https://img.shields.io/badge/docker-davidgman%2Fzero--downtime-blue?style=flat-square&logo=docker) ![License](https://img.shields.io/badge/license-MIT-white?style=flat-square)
+![Zero Downtime](https://img.shields.io/badge/version-1.0.4-00e5a0?style=flat-square) ![Docker](https://img.shields.io/badge/docker-davidgman%2Fzero--downtime-blue?style=flat-square&logo=docker) ![License](https://img.shields.io/badge/license-MIT-white?style=flat-square)
 
 ---
 
@@ -102,8 +102,8 @@ python3 -m http.server 8080
 ## 🐳 Build & push Docker image
 
 ```bash
-docker build -t davidgman/zero-downtime:1.0.0 -t davidgman/zero-downtime:latest .
-docker push davidgman/zero-downtime:1.0.0
+docker build -t davidgman/zero-downtime:1.0.4 -t davidgman/zero-downtime:latest .
+docker push davidgman/zero-downtime:1.0.4
 docker push davidgman/zero-downtime:latest
 ```
 
