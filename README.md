@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PAGERDEV — Self-hosted Setup
 
 ## Files needed (all in the same folder)
@@ -25,3 +26,6 @@ Replace `devops_odyssey.html` then:
 docker compose up -d --build
 ```
 
+=======
+# zero-downtime
+>>>>>>> 41a03419b026594ce1add15cc536df126d65c9ec
