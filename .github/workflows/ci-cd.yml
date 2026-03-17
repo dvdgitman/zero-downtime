@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'devops_odyssey.html'
+      - 'zero-downtime.html'
       - 'Dockerfile'
       - 'docker-compose.yml'
   workflow_dispatch:
@@ -38,6 +38,10 @@ jobs:
       - name: 🔄 Restart container on QNAP
         run: |
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest
+          # Stop any container using port 32712
+          docker ps -q --filter "publish=32712" | xargs -r docker stop
+          docker ps -aq --filter "publish=32712" | xargs -r docker rm
+          # Also try by name
           docker stop zerodowntime || true
           docker rm zerodowntime || true
           docker run -d \
