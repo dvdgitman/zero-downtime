@@ -2553,15 +2553,23 @@ function updateTerminalTracker(){
 }
 
 
-// ─── PROP COLLIDERS — decorative objects the player cannot walk through ───────
-const PROP_COLLIDERS = [
-  // Desks (green monitor blocks)
-  {x:240,y:200,w:60,h:36},
-  {x:320,y:200,w:60,h:36},
-  {x:550,y:150,w:60,h:36},
-  // Floor cable tray (purple/dark horizontal strip)
-  {x:190,y:320,w:320,h:20},
-];
+// ─── PROP COLLIDERS — computed per level from LEVEL_PROPS ────────────────────
+function getPropColliders(){
+  const li = currentLevelIndex;
+  const LEVEL_PROPS_COLLIDERS = [
+    [{x:240,y:200,w:60,h:36},{x:320,y:200,w:60,h:36},{x:550,y:150,w:60,h:36},{x:190,y:320,w:320,h:20}], // L1
+    [{x:440,y:180,w:60,h:36},{x:100,y:180,w:60,h:36}], // L2 — no cable tray
+    [{x:240,y:150,w:60,h:36},{x:500,y:150,w:60,h:36},{x:190,y:320,w:320,h:20}], // L3
+    [{x:300,y:200,w:60,h:36},{x:560,y:200,w:60,h:36}], // L4
+    [{x:240,y:180,w:60,h:36},{x:380,y:180,w:60,h:36},{x:190,y:320,w:320,h:20}], // L5
+    [{x:250,y:200,w:60,h:36},{x:500,y:180,w:60,h:36}], // L6
+    [{x:240,y:180,w:60,h:36},{x:380,y:200,w:60,h:36},{x:190,y:320,w:320,h:20}], // L7
+    [{x:260,y:200,w:60,h:36},{x:540,y:170,w:60,h:36}], // L8
+    [{x:240,y:200,w:60,h:36},{x:480,y:200,w:60,h:36},{x:190,y:320,w:320,h:20}], // L9
+    [{x:240,y:200,w:60,h:36},{x:540,y:200,w:60,h:36}], // L10
+  ];
+  return LEVEL_PROPS_COLLIDERS[Math.min(li, LEVEL_PROPS_COLLIDERS.length-1)];
+}
 
 
 // ─── PWA: MANIFEST + SERVICE WORKER ──────────────────────────────────────────
@@ -2675,6 +2683,42 @@ function drawAnimeGirl(ctx, cx, cy, bob, col){
   // Smile
   ctx.strokeStyle='#8a4030'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.arc(cx,cy+8+bob,2,0.2,Math.PI-0.2); ctx.stroke();
+}
+
+
+function playUwuSound(){
+  if(!soundEnabled) return;
+  try{
+    const a = getAudio();
+    const now = a.currentTime;
+    // High pitched kawaii notes
+    const notes = [880, 1046, 1318, 1046, 880];
+    notes.forEach((freq, i) => {
+      const o = a.createOscillator();
+      const g = a.createGain();
+      const v = a.createStereoPanner();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      v.pan.value = (Math.random() * 2 - 1) * 0.5;
+      o.connect(g); g.connect(v); v.connect(a.destination);
+      g.gain.setValueAtTime(0, now + i * 0.12);
+      g.gain.linearRampToValueAtTime(0.12, now + i * 0.12 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.2);
+      o.start(now + i * 0.12);
+      o.stop(now + i * 0.12 + 0.25);
+    });
+    // Little giggle noise
+    const buf = a.createBuffer(1, a.sampleRate * 0.06, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.15*Math.sin(i/20);
+    const src = a.createBufferSource(); src.buffer = buf;
+    const gn = a.createGain(); src.connect(gn); gn.connect(a.destination);
+    const filter = a.createBiquadFilter(); filter.type='bandpass'; filter.frequency.value=2000;
+    src.connect(filter); filter.connect(gn);
+    gn.gain.setValueAtTime(0.08, now+0.5);
+    gn.gain.exponentialRampToValueAtTime(0.001, now+0.6);
+    src.start(now+0.5); src.stop(now+0.65);
+  } catch(e){}
 }
 
 // ─── PARTICLE SYSTEM ─────────────────────────────────────────────────────────
@@ -2797,6 +2841,7 @@ const QUESTION_BANK = {
     {label:'Pulumi',lines:[{t:'p',v:'$ pulumi up'},{t:'e',v:'error: resource already exists'},{t:'m',v:'Stack state conflict with live infra'},{t:'m',v:'aws:ec2/instance:Instance::web-server already registered'}],q:'pulumi up fails because a resource exists outside the stack. How do you fix it?',choices:[{t:'Delete the resource manually then re-run pulumi up',c:false},{t:'Run pulumi import to bring the resource into stack state',c:true},{t:'Run pulumi destroy and start over',c:false}],ok:'pulumi import <type> <name> <cloud-id> adopts the existing resource into Pulumi state without recreating it.',bad:'pulumi import is the safe fix. Never delete prod resources to satisfy a state file — use import instead.',brief:{concept:'Pulumi Stack State Conflicts',explain:'Pulumi tracks infrastructure in a state file. If a resource was created outside Pulumi (manually in the console or by another tool), Pulumi does not know about it and tries to create it again — causing a conflict. pulumi import tells Pulumi to adopt the existing resource into its state without touching it.',tip:'Use pulumi refresh to sync state with reality before running pulumi up on drifted infrastructure.',},xp:3},
   ],
   6: [
+    {label:'Service Mesh',lines:[{t:'m',v:'# Microservices: 12 services, all talking to each other'},{t:'e',v:'Problems: retries? timeouts? mTLS? tracing? — in every service'},{t:'m',v:'# With service mesh:'},{t:'m',v:'sidecar proxy handles all of the above — zero app code changes'}],q:'What is a service mesh and what problem does it solve?',choices:[{t:'A Kubernetes CNI plugin that replaces kube-proxy for faster networking',c:false},{t:'An infrastructure layer that handles service-to-service communication — retries, mTLS, tracing, and load balancing via sidecar proxies',c:true},{t:'A shared library that every service imports to get resilience features',c:false}],ok:'A service mesh injects a sidecar proxy (Envoy/Linkerd2) into every pod. The proxy handles all network concerns — the app just makes plain HTTP calls.',bad:'CNI handles pod networking at the kernel level. A shared library still requires code changes in every service. A mesh is infrastructure-level.',brief:{concept:'What is a Service Mesh',explain:'A service mesh adds an infrastructure layer between your services. Each pod gets a sidecar proxy injected automatically. The proxy intercepts all inbound and outbound traffic and handles: mTLS encryption, retries, timeouts, circuit breaking, load balancing, and distributed tracing — without any application code changes. Popular options: Istio (powerful, complex) and Linkerd (lightweight, simple).',tip:'Start with Linkerd if you want simplicity. Use Istio if you need advanced traffic management like canary routing and JWT auth policies.',},xp:4},
     {label:'Service Mesh',lines:[{t:'m',v:'# Without service mesh:'},{t:'m',v:'app code: retry logic, timeout, circuit breaker, mTLS'},{t:'e',v:'3000 lines of boilerplate across 12 services'},{t:'m',v:'# With Istio/Linkerd:'},{t:'m',v:'all above handled by sidecar proxy — zero app code'}],q:'What is the main benefit of a service mesh over implementing resilience in app code?',choices:[{t:'Service mesh is faster because Envoy is written in C++ unlike app code',c:false},{t:'Moves cross-cutting concerns (retries, mTLS, observability) out of app code into the infrastructure layer',c:true},{t:'Service mesh eliminates the need for Kubernetes Services and Ingress',c:false}],ok:'Service mesh handles retries, timeouts, circuit breaking, mTLS, and tracing at the sidecar level — no app code changes needed.',bad:'Performance is a side benefit not the main reason. Service mesh does not replace K8s Services — it enhances service-to-service communication.',brief:{concept:'Service Mesh Benefits',explain:'A service mesh moves resilience patterns (retries, circuit breaking, timeouts), security (mTLS), and observability (distributed tracing) from application code into a sidecar proxy. Each pod gets an Envoy/Linkerd2 proxy injected. Teams get these features for free across all services.',tip:'Linkerd is lighter weight than Istio. Use Linkerd for simplicity, Istio for advanced traffic management.',},xp:4},
     {label:'Circuit Breaker',lines:[{t:'p',v:'$ kubectl get destinationrule api-dr -o yaml'},{t:'m',v:'trafficPolicy:'},{t:'m',v:'  outlierDetection:'},{t:'m',v:'    consecutive5xxErrors: 3'},{t:'m',v:'    interval: 10s'},{t:'e',v:'api-pod ejected from load balancer pool after 3 errors'}],q:'The pod was ejected from the pool. What does this Istio circuit breaker config do?',choices:[{t:'Restarts the pod after 3 consecutive 5xx errors',c:false},{t:'Ejects the pod from the load balancer for the interval duration after 3 consecutive 5xx responses',c:true},{t:'Scales down the deployment when error rate exceeds 3 errors per 10 seconds',c:false}],ok:'Outlier detection ejects unhealthy endpoints from the pool temporarily. Requests stop going to the bad pod, giving it time to recover.',bad:'Istio circuit breakers do not restart pods — that is Kubernetes. They only stop routing traffic to the pod via ejection.',brief:{concept:'Istio Circuit Breaking with Outlier Detection',explain:'Istio outlier detection ejects endpoints that return too many errors from the load balancer pool. After the ejection interval, the endpoint is given another chance. This prevents a single bad pod from degrading the whole service.',tip:'Set baseEjectionTime and maxEjectionPercent to control how long and how many pods can be ejected simultaneously.',},xp:4},
     {label:'Argo Rollouts',lines:[{t:'p',v:'$ kubectl argo rollouts get rollout api-rollout'},{t:'m',v:'Status: Paused'},{t:'m',v:'Canary weight: 20%  stable: 80%'},{t:'e',v:'Analysis run: error-rate > 5% — paused for review'}],q:'ArgoCD Rollouts paused a canary at 20% due to high error rate. Correct action?',choices:[{t:'kubectl argo rollouts promote api-rollout to push to 100%',c:false},{t:'kubectl argo rollouts abort api-rollout to roll back to stable',c:true},{t:'kubectl argo rollouts retry api-rollout to restart the analysis',c:false}],ok:'abort rolls back to the stable version immediately. promote would push broken code to 100% of traffic.',bad:'Never promote when analysis shows errors. abort is the safe action — it rolls back to stable. retry just re-runs the failing analysis.',brief:{concept:'ArgoCD Rollouts Canary and Analysis',explain:'ArgoCD Rollouts extends Kubernetes Deployments with canary and blue-green strategies. An AnalysisRun monitors metrics during rollout. If the analysis fails, the rollout pauses. abort rolls back to stable. promote advances to the next step.',tip:'Use kubectl argo rollouts dashboard for a visual view. Set successCondition and failureCondition in your AnalysisTemplate.',},xp:4},
@@ -3005,7 +3050,8 @@ function nearNPC(){
 }
 
 function openDialogue(npc){
-  const lines = isEasterEgg() ? ['Oniichan...', 'Yamate kudasai~', 'Oniichan yamate! 🌸', 'H-hewwo...'] : (NPC_DIALOGUE[npc.label] || ["...", "I have nothing to say."]);
+  if(isEasterEgg()) playUwuSound();
+  const lines = isEasterEgg() ? ['Oniichan...\n(ʘᗩʘ\')', 'Yamate kudasai~ uwu', 'Oniichan yamate!! 🌸', 'H-hewwo senpai... (≧◡≦)', 'uwu nani kore...'] : (NPC_DIALOGUE[npc.label] || ["...", "I have nothing to say."]);
   activeDialogue = lines[Math.floor(Math.random()*lines.length)];
   dialogueNPC = npc;
   const el = document.getElementById('npc-dialogue');
@@ -3626,7 +3672,7 @@ function loop(ts){
       if(collides({x:nx,y:player.y,w:player.w,h:player.h},nb)) nx=player.x;
       if(collides({x:player.x,y:ny,w:player.w,h:player.h},nb)) ny=player.y;
     }
-    for(const pb of PROP_COLLIDERS){
+    for(const pb of getPropColliders()){
       if(collides({x:nx,y:player.y,w:player.w,h:player.h},pb)) nx=player.x;
       if(collides({x:player.x,y:ny,w:player.w,h:player.h},pb)) ny=player.y;
     }
@@ -3657,7 +3703,7 @@ function loop(ts){
           if(collides({x:nx,y:player.y,w:player.w,h:player.h},nb)) nx=player.x;
           if(collides({x:player.x,y:ny,w:player.w,h:player.h},nb)) ny=player.y;
         }
-        for(const pb of PROP_COLLIDERS){
+        for(const pb of getPropColliders()){
           if(collides({x:nx,y:player.y,w:player.w,h:player.h},pb)) nx=player.x;
           if(collides({x:player.x,y:ny,w:player.w,h:player.h},pb)) ny=player.y;
         }
@@ -3809,13 +3855,24 @@ function drawWalls(){
 
 function drawProps(){
   const ac = level.accentColor;
-  // Server racks based on level
-  const rackPositions = [
-    {x:90,y:62},{x:130,y:62},{x:170,y:62},{x:210,y:62},
-    {x:390,y:100},{x:430,y:100},{x:470,y:100},
-    {x:540,y:220},{x:540,y:252},{x:540,y:284},
+  const li = currentLevelIndex;
+
+  const LEVEL_PROPS = [
+    { racks:[{x:90,y:78},{x:130,y:78},{x:170,y:78},{x:210,y:78},{x:390,y:118},{x:430,y:118},{x:470,y:118},{x:540,y:220},{x:540,y:252},{x:540,y:284}], desks:[{x:240,y:200},{x:320,y:200},{x:550,y:155}], cable:true },
+    { racks:[{x:90,y:90},{x:130,y:90},{x:170,y:90},{x:420,y:100},{x:460,y:100},{x:500,y:100},{x:580,y:220},{x:580,y:252}], desks:[{x:440,y:180},{x:100,y:180}], cable:false },
+    { racks:[{x:100,y:62},{x:140,y:62},{x:180,y:62},{x:390,y:100},{x:430,y:100},{x:470,y:100}], desks:[{x:240,y:155},{x:500,y:155}], cable:true },
+    { racks:[{x:90,y:78},{x:130,y:78},{x:170,y:78},{x:450,y:100},{x:490,y:100},{x:530,y:100}], desks:[{x:300,y:200},{x:560,y:200}], cable:false },
+    { racks:[{x:90,y:78},{x:130,y:78},{x:420,y:100},{x:460,y:100},{x:540,y:200},{x:540,y:232}], desks:[{x:240,y:180},{x:380,y:180}], cable:true },
+    { racks:[{x:90,y:78},{x:130,y:78},{x:170,y:78},{x:420,y:100},{x:460,y:100}], desks:[{x:250,y:200},{x:500,y:180}], cable:false },
+    { racks:[{x:100,y:62},{x:140,y:62},{x:420,y:100},{x:460,y:100},{x:580,y:200},{x:580,y:232}], desks:[{x:240,y:180},{x:380,y:200}], cable:true },
+    { racks:[{x:90,y:78},{x:130,y:78},{x:170,y:78},{x:450,y:100},{x:490,y:100},{x:530,y:100}], desks:[{x:260,y:200},{x:540,y:170}], cable:false },
+    { racks:[{x:100,y:78},{x:140,y:78},{x:180,y:78},{x:420,y:100},{x:460,y:100},{x:540,y:200},{x:540,y:232}], desks:[{x:240,y:200},{x:460,y:200}], cable:true },
+    { racks:[{x:90,y:78},{x:130,y:78},{x:420,y:100},{x:460,y:100},{x:620,y:100},{x:660,y:100}], desks:[{x:240,y:200},{x:540,y:200}], cable:false },
   ];
-  for(const r of rackPositions){
+
+  const props = LEVEL_PROPS[Math.min(li, LEVEL_PROPS.length-1)];
+
+  for(const r of props.racks){
     ctx.fillStyle='#1c2438';
     ctx.fillRect(r.x,r.y,32,18);
     ctx.strokeStyle='#2a3550'; ctx.lineWidth=1;
@@ -3828,19 +3885,20 @@ function drawProps(){
       ctx.fillRect(r.x+4+i*8,r.y+10,5,2);
     }
   }
-  // Desks
-  const desks=[{x:240,y:200},{x:320,y:200},{x:550,y:150}];
-  for(const d of desks){
+
+  for(const d of props.desks){
     ctx.fillStyle='#1e2535'; ctx.fillRect(d.x,d.y,60,36);
     ctx.fillStyle='#141c28'; ctx.fillRect(d.x+4,d.y+4,52,24);
     ctx.fillStyle='#0a3a2a'; ctx.fillRect(d.x+6,d.y+6,48,20);
     ctx.fillStyle = ac + '20'; ctx.fillRect(d.x+8,d.y+8,44,16);
   }
-  // Floor cable tray
-  ctx.fillStyle='#1a1a2a'; ctx.fillRect(190,320,320,20);
-  for(let i=0;i<8;i++){
-    ctx.fillStyle = i%2===0 ? '#2a2a3a':'#1e1e2e';
-    ctx.fillRect(190+i*40,320,40,20);
+
+  if(props.cable){
+    ctx.fillStyle='#1a1a2a'; ctx.fillRect(190,320,320,20);
+    for(let i=0;i<8;i++){
+      ctx.fillStyle = i%2===0 ? '#2a2a3a':'#1e1e2e';
+      ctx.fillRect(190+i*40,320,40,20);
+    }
   }
 }
 
