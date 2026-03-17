@@ -12,18 +12,32 @@ on:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
+
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 🏷️ Set version
         id: version
-        run: echo "TAG=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        run: |
+          TAG="1.0.${{ github.run_number }}"
+          SHA=$(git rev-parse --short HEAD)
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "SHA=$SHA" >> $GITHUB_OUTPUT
+          echo "Building version $TAG ($SHA)"
+
+      - name: 🔍 Validate HTML
+        run: |
+          [ -s zero-downtime.html ] && echo "✅ HTML file OK" || (echo "❌ HTML missing or empty" && exit 1)
 
       - name: 🐳 Build Docker image
         run: |
           docker build \
+            --label "version=${{ steps.version.outputs.TAG }}" \
+            --label "git-sha=${{ steps.version.outputs.SHA }}" \
+            --label "build-date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:${{ steps.version.outputs.TAG }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:previous \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest \
             .
 
@@ -33,15 +47,13 @@ jobs:
       - name: 📤 Push image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:${{ steps.version.outputs.TAG }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:previous
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest
 
-      - name: 🔄 Restart container on QNAP
+      - name: 🔄 Deploy on QNAP
         run: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest
-          # Stop any container using port 32712
           docker ps -q --filter "publish=32712" | xargs -r docker stop
           docker ps -aq --filter "publish=32712" | xargs -r docker rm
-          # Also try by name
           docker stop zerodowntime || true
           docker rm zerodowntime || true
           docker run -d \
@@ -50,10 +62,26 @@ jobs:
             -p 32712:80 \
             ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:latest
 
+      - name: 🏥 Health check
+        run: |
+          sleep 5
+          docker ps | grep zerodowntime || (echo "❌ Container not running" && exit 1)
+          echo "✅ Container is running"
+
+      - name: 🔙 Rollback on failure
+        if: failure()
+        run: |
+          docker stop zerodowntime || true
+          docker rm zerodowntime || true
+          docker run -d \
+            --name zerodowntime \
+            --restart unless-stopped \
+            -p 32712:80 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/zero-downtime:previous
+          echo "🔙 Rolled back to previous version"
+
       - name: 🧹 Cleanup old images
         run: docker image prune -f
 
       - name: ✅ Done
-        run: |
-          echo "Deployed version ${{ steps.version.outputs.TAG }}"
-          echo "Live at: https://test.davidgman.com"
+        run: echo "Deployed v${{ steps.version.outputs.TAG }} (${{ steps.version.outputs.SHA }})"
