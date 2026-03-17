@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Zero Downtime">
+<meta name="application-name" content="Zero Downtime">
+<meta name="theme-color" content="#00e5a0">
+<meta name="msapplication-TileColor" content="#06080f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
 <meta name="mobile-web-app-capable" content="yes">
 <title>ZERO DOWNTIME — DevOps RPG</title>
@@ -2559,6 +2565,66 @@ const PROP_COLLIDERS = [
   // Floor cable tray (purple/dark horizontal strip)
   {x:190,y:320,w:320,h:20},
 ];
+
+
+// ─── PWA: MANIFEST + SERVICE WORKER ──────────────────────────────────────────
+(function(){
+  // Inject manifest dynamically so it works from a single HTML file
+  const manifest = {
+    name: "Zero Downtime",
+    short_name: "Zero Downtime",
+    description: "A DevOps Learning RPG — 10 levels, 60+ real incidents",
+    start_url: "./",
+    display: "fullscreen",
+    orientation: "landscape",
+    background_color: "#06080f",
+    theme_color: "#00e5a0",
+    icons: [
+      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%2306080f'/%3E%3Crect x='16' y='16' width='160' height='160' rx='12' fill='%230a1520' stroke='%2300e5a0' stroke-width='4'/%3E%3Ctext x='96' y='80' font-family='monospace' font-size='48' fill='%2300e5a0' text-anchor='middle'%3E%3E_%3C/text%3E%3Ctext x='96' y='130' font-family='monospace' font-size='18' fill='%2300e5a060' text-anchor='middle'%3EZERO%3C/text%3E%3Ctext x='96' y='152' font-family='monospace' font-size='18' fill='%2300e5a060' text-anchor='middle'%3EDOWNTIME%3C/text%3E%3C/svg%3E",
+        sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%2306080f'/%3E%3Crect x='32' y='32' width='448' height='448' rx='24' fill='%230a1520' stroke='%2300e5a0' stroke-width='8'/%3E%3Ctext x='256' y='220' font-family='monospace' font-size='128' fill='%2300e5a0' text-anchor='middle'%3E%3E_%3C/text%3E%3Ctext x='256' y='340' font-family='monospace' font-size='48' fill='%2300e5a060' text-anchor='middle'%3EZERO%3C/text%3E%3Ctext x='256' y='400' font-family='monospace' font-size='48' fill='%2300e5a060' text-anchor='middle'%3EDOWNTIME%3C/text%3E%3C/svg%3E",
+        sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+    ]
+  };
+
+  // Inject manifest as blob
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = url;
+  // Remove the static manifest link if it exists
+  document.querySelectorAll('link[rel="manifest"]').forEach(l => l.remove());
+  document.head.appendChild(link);
+
+  // Register service worker for offline support
+  if('serviceWorker' in navigator){
+    const swCode = `
+const CACHE = 'zero-downtime-v1';
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+      return res;
+    }).catch(() => caches.match('/')))
+  );
+});
+`;
+    const swBlob = new Blob([swCode], {type:'text/javascript'});
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }
+})();
 
 // ─── PARTICLE SYSTEM ─────────────────────────────────────────────────────────
 let particles = [];
