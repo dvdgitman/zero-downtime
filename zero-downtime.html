@@ -2557,16 +2557,16 @@ function updateTerminalTracker(){
 function getPropColliders(){
   const li = currentLevelIndex;
   const LEVEL_PROPS_COLLIDERS = [
-    [{x:240,y:200,w:60,h:36},{x:320,y:200,w:60,h:36},{x:550,y:150,w:60,h:36},{x:190,y:320,w:320,h:20}], // L1
-    [{x:440,y:180,w:60,h:36},{x:100,y:180,w:60,h:36}], // L2 — no cable tray
-    [{x:240,y:150,w:60,h:36},{x:500,y:150,w:60,h:36},{x:190,y:320,w:320,h:20}], // L3
-    [{x:300,y:200,w:60,h:36},{x:560,y:200,w:60,h:36}], // L4
-    [{x:240,y:180,w:60,h:36},{x:380,y:180,w:60,h:36},{x:190,y:320,w:320,h:20}], // L5
-    [{x:250,y:200,w:60,h:36},{x:500,y:180,w:60,h:36}], // L6
-    [{x:240,y:180,w:60,h:36},{x:380,y:200,w:60,h:36},{x:190,y:320,w:320,h:20}], // L7
-    [{x:260,y:200,w:60,h:36},{x:540,y:170,w:60,h:36}], // L8
-    [{x:240,y:200,w:60,h:36},{x:480,y:200,w:60,h:36},{x:190,y:320,w:320,h:20}], // L9
-    [{x:240,y:200,w:60,h:36},{x:540,y:200,w:60,h:36}], // L10
+    [{x:240,y:200,w:46,h:36},{x:320,y:200,w:46,h:36},{x:550,y:150,w:46,h:36},{x:200,y:355,w:260,h:8}], // L1
+    [{x:440,y:180,w:46,h:36},{x:100,y:180,w:46,h:36}], // L2 — no cable tray
+    [{x:240,y:150,w:46,h:36},{x:500,y:150,w:46,h:36},{x:200,y:355,w:260,h:8}], // L3
+    [{x:300,y:200,w:46,h:36},{x:560,y:200,w:46,h:36}], // L4
+    [{x:240,y:180,w:46,h:36},{x:380,y:180,w:46,h:36},{x:200,y:355,w:260,h:8}], // L5
+    [{x:250,y:200,w:46,h:36},{x:500,y:180,w:46,h:36}], // L6
+    [{x:240,y:180,w:46,h:36},{x:380,y:200,w:46,h:36},{x:200,y:355,w:260,h:8}], // L7
+    [{x:260,y:200,w:46,h:36},{x:540,y:170,w:46,h:36}], // L8
+    [{x:240,y:200,w:46,h:36},{x:480,y:200,w:46,h:36},{x:200,y:355,w:260,h:8}], // L9
+    [{x:240,y:200,w:46,h:36},{x:540,y:200,w:46,h:36}], // L10
   ];
   return LEVEL_PROPS_COLLIDERS[Math.min(li, LEVEL_PROPS_COLLIDERS.length-1)];
 }
@@ -3947,17 +3947,29 @@ function drawProps(){
   }
 
   for(const d of props.desks){
-    ctx.fillStyle='#1e2535'; ctx.fillRect(d.x,d.y,60,36);
-    ctx.fillStyle='#141c28'; ctx.fillRect(d.x+4,d.y+4,52,24);
-    ctx.fillStyle='#0a3a2a'; ctx.fillRect(d.x+6,d.y+6,48,20);
-    ctx.fillStyle = ac + '20'; ctx.fillRect(d.x+8,d.y+8,44,16);
+    // Desk surface — wooden look
+    ctx.fillStyle='#2a1f14'; ctx.fillRect(d.x,d.y+14,46,18);
+    ctx.fillStyle='#3a2a1a'; ctx.fillRect(d.x+1,d.y+15,44,16);
+    // Desk legs
+    ctx.fillStyle='#1a100a'; ctx.fillRect(d.x+3,d.y+28,4,8); ctx.fillRect(d.x+39,d.y+28,4,8);
+    // Small monitor on desk
+    ctx.fillStyle='#0d1520'; ctx.fillRect(d.x+12,d.y+4,22,14);
+    ctx.fillStyle='#1a2535'; ctx.fillRect(d.x+13,d.y+5,20,11);
+    ctx.fillStyle=ac+'30'; ctx.fillRect(d.x+14,d.y+6,18,9);
+    // Monitor stand
+    ctx.fillStyle='#0d1520'; ctx.fillRect(d.x+20,d.y+16,6,3);
+    // Keyboard hint
+    ctx.fillStyle='#1a2030'; ctx.fillRect(d.x+8,d.y+20,20,4);
+    ctx.fillStyle='#252a3a'; ctx.fillRect(d.x+9,d.y+21,18,2);
   }
 
   if(props.cable){
-    ctx.fillStyle='#1a1a2a'; ctx.fillRect(190,320,320,20);
-    for(let i=0;i<8;i++){
-      ctx.fillStyle = i%2===0 ? '#2a2a3a':'#1e1e2e';
-      ctx.fillRect(190+i*40,320,40,20);
+    // Thin cable tray — not a huge block
+    ctx.fillStyle='#16161e'; ctx.fillRect(200,355,260,8);
+    ctx.fillStyle='#1e1e2a'; ctx.fillRect(201,356,258,6);
+    for(let i=0;i<6;i++){
+      ctx.fillStyle = i%2===0 ? '#22223a':'#1a1a2e';
+      ctx.fillRect(201+i*43,356,43,6);
     }
   }
 }
