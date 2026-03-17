@@ -2634,9 +2634,14 @@ self.addEventListener('fetch', e => {
 
 // ─── EASTER EGG ───────────────────────────────────────────────────────────────
 const EASTER_EGG_NAMES = ['david','lidor','gay','ilikeboys'];
+const EASTER_EGG2_NAMES = ['dima'];
 function isEasterEgg(){
   const name = (activeProfile?.name || '').toLowerCase().trim();
   return EASTER_EGG_NAMES.some(n => name.includes(n));
+}
+function isEasterEgg2(){
+  const name = (activeProfile?.name || '').toLowerCase().trim();
+  return EASTER_EGG2_NAMES.some(n => name.includes(n));
 }
 
 // 5 different anime girl designs keyed by index
@@ -2745,6 +2750,46 @@ function playUwuVoice(text){
   } catch(e){}
 }
 
+
+
+function drawNinja(ctx, cx, cy, bob){
+  // Body — brown
+  ctx.fillStyle='#6b3a1f';
+  ctx.fillRect(cx-6,cy+10+bob,12,14);
+  // Legs
+  ctx.fillStyle='#5a3018';
+  ctx.fillRect(cx-5,cy+24+bob,4,8);
+  ctx.fillRect(cx+1,cy+24+bob,4,8);
+  // Shoes
+  ctx.fillStyle='#3a1e0e';
+  ctx.fillRect(cx-6,cy+30+bob,5,3);
+  ctx.fillRect(cx,cy+30+bob,5,3);
+  // Head wrap — brown
+  ctx.fillStyle='#6b3a1f';
+  ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
+  // Face mask
+  ctx.fillStyle='#5a3018';
+  ctx.fillRect(cx-7,cy+2+bob,14,8);
+  // Eyes — white
+  ctx.fillStyle='#fff';
+  ctx.fillRect(cx-4,cy+3+bob,3,3);
+  ctx.fillRect(cx+1,cy+3+bob,3,3);
+  // Pupils
+  ctx.fillStyle='#1a0a00';
+  ctx.fillRect(cx-3,cy+4+bob,2,2);
+  ctx.fillRect(cx+2,cy+4+bob,2,2);
+  // Head wrap top
+  ctx.fillStyle='#5a3018';
+  ctx.fillRect(cx-7,cy-2+bob,14,5);
+  ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
+  // Belt
+  ctx.fillStyle='#8b5e3c';
+  ctx.fillRect(cx-6,cy+18+bob,12,2);
+  // Arms
+  ctx.fillStyle='#6b3a1f';
+  ctx.fillRect(cx-8,cy+10+bob,3,10);
+  ctx.fillRect(cx+5,cy+10+bob,3,10);
+}
 
 function playUwuSound(){
   if(!soundEnabled) return;
@@ -3008,6 +3053,10 @@ document.addEventListener('keydown', e => {
 
   if(e.key === 'Escape'){ closeTerminal(); closeBrief(); }
   if((e.key === 'e' || e.key === 'E')){ const nt=nearTerminal(); const nn=nearNPC(); if(nt) openBriefing(nt); else if(nn) openDialogue(nn); }
+  // Dima easter egg shooting — F or Space when not in overlay
+  if((e.key==='f'||e.key==='F'||e.key===' ') && isEasterEgg2() && gameRunning && !briefOpen && !termOpen){
+    shootBullet(); e.preventDefault(); return;
+  }
   // Space/Enter to confirm brief
   if(briefOpen){
     if(e.key===' '||e.key==='Enter'){ briefToQuestion(); e.preventDefault(); }
@@ -3111,21 +3160,23 @@ function nearNPC(){
 
 function openDialogue(npc){
   if(isEasterEgg()){ playUwuSound(); playUwuVoice(); }
-  const lines = isEasterEgg() ? ['Oniichan...\n(ʘᗩʘ\')', 'Yamate kudasai~ uwu', 'Oniichan yamate!! 🌸', 'H-hewwo senpai... (≧◡≦)', 'uwu nani kore...'] : (NPC_DIALOGUE[npc.label] || ["...", "I have nothing to say."]);
+  if(isEasterEgg2()){ playSound('interact'); }
+  const lines = isEasterEgg2() ? ['OOGA BOOGA', 'OOGA OOGA BOOGA', 'BOOGA BOOGA!!', 'OOGA!', 'BOOGA OOGA BOOGA!'] : isEasterEgg() ? ['Oniichan...\n(ʘᗩʘ\')', 'Yamate kudasai~ uwu', 'Oniichan yamate!! 🌸', 'H-hewwo senpai... (≧◡≦)', 'uwu nani kore...'] : (NPC_DIALOGUE[npc.label] || ["...", "I have nothing to say."]);
   activeDialogue = lines[Math.floor(Math.random()*lines.length)];
   dialogueNPC = npc;
   const el = document.getElementById('npc-dialogue');
   const nameEl = document.getElementById('npc-dialogue-name');
   const textEl = document.getElementById('npc-dialogue-text');
-  nameEl.textContent = npc.label;
-  nameEl.style.color = npc.color;
+  nameEl.textContent = isEasterEgg2() ? 'Ebola' : '';
+  nameEl.style.color = '#ff4d4d';
+  nameEl.style.display = isEasterEgg2() ? 'block' : 'none';
   textEl.textContent = activeDialogue;
   el.style.display = 'block';
   el.style.borderColor = npc.color + '80';
   playSound('interact');
   setTimeout(() => {
     if(dialogueNPC === npc){ el.style.display='none'; dialogueNPC=null; }
-  }, isEasterEgg() ? 7000 : 6000);
+  }, isEasterEgg() ? 7000 : isEasterEgg2() ? 5000 : 9000);
 }
 
 // ─── COLLISION ────────────────────────────────────────────────────────────────
@@ -3689,6 +3740,8 @@ function loadLevel(idx){
     delete inventory[item.id];
   });
   updateHUDItems();
+  deadNpcs = new Set();
+  bullets = [];
   fadeIn();
   saveGame();
   if(musicEnabled && soundEnabled && !musicScheduler) startSoundtrack();
@@ -3715,6 +3768,91 @@ function restartGame(){
   updateHUDItems();
   saveGame();
   showProfileScreen();
+}
+
+
+// ─── DIMA EASTER EGG: SHOOTING SYSTEM ────────────────────────────────────────
+let bullets = [];
+let deadNpcs = new Set(); // track shot NPCs by index
+let shootCooldown = 0;
+let muzzleFlash = 0;
+
+function shootBullet(){
+  if(!isEasterEgg2() || !gameRunning) return;
+  if(shootCooldown > 0) return;
+  shootCooldown = 12; // frames between shots
+  const cx = player.x + player.w/2;
+  const cy = player.y + 16;
+  const dir = player.dir;
+  let vx = 0, vy = 0;
+  if(dir === 'right') vx = 10;
+  else if(dir === 'left') vx = -10;
+  else if(dir === 'up') vy = -10;
+  else vy = 10;
+  bullets.push({ x: cx, y: cy, vx, vy, life: 40 });
+  muzzleFlash = 6; // frames to show flash
+  // Muzzle bang sound
+  try{
+    const a = getAudio();
+    const now = a.currentTime;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(180, now);
+    o.frequency.exponentialRampToValueAtTime(40, now+0.08);
+    g.gain.setValueAtTime(0.3, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.12);
+    o.connect(g); g.connect(a.destination);
+    o.start(now); o.stop(now+0.15);
+    // Noise burst
+    const buf = a.createBuffer(1, a.sampleRate*0.06, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.4;
+    const src = a.createBufferSource(); src.buffer=buf;
+    const ng = a.createGain(); ng.gain.setValueAtTime(0.2,now); ng.gain.exponentialRampToValueAtTime(0.001,now+0.06);
+    src.connect(ng); ng.connect(a.destination);
+    src.start(now); src.stop(now+0.06);
+  } catch(e){}
+}
+
+function updateBullets(dt){
+  if(!isEasterEgg2()){ bullets=[]; return; }
+  if(shootCooldown > 0) shootCooldown--;
+  if(muzzleFlash > 0) muzzleFlash--;
+  for(let i = bullets.length-1; i>=0; i--){
+    const b = bullets[i];
+    b.x += b.vx;
+    b.y += b.vy;
+    b.life--;
+    if(b.life <= 0){ bullets.splice(i,1); continue; }
+    // Check hit vs NPCs
+    if(level){
+      for(let ni=0; ni<level.npcs.length; ni++){
+        if(deadNpcs.has(ni)) continue;
+        const npc = level.npcs[ni];
+        if(b.x>npc.x-4 && b.x<npc.x+24 && b.y>npc.y && b.y<npc.y+36){
+          deadNpcs.add(ni);
+          bullets.splice(i,1);
+          // Blood particles
+          spawnParticles(npc.x+10, npc.y+16, '#cc0000', 12, 'explosion');
+          spawnParticles(npc.x+10, npc.y+16, '#ff4444', 8, 'normal');
+          break;
+        }
+      }
+    }
+  }
+}
+
+function drawBullets(){
+  if(!isEasterEgg2()) return;
+  ctx.fillStyle = '#ffee00';
+  for(const b of bullets){
+    ctx.fillRect(b.x-2, b.y-2, 4, 4);
+    // Tracer
+    ctx.fillStyle = '#ff880060';
+    ctx.fillRect(b.x - b.vx*0.5 - 2, b.y - b.vy*0.5 - 1, 4, 2);
+    ctx.fillStyle = '#ffee00';
+  }
 }
 
 // ─── GAME LOOP ────────────────────────────────────────────────────────────────
@@ -3803,6 +3941,7 @@ function loop(ts){
   }
 
   updateParticles(dt);
+  updateBullets(dt);
   draw();
   updateHUDOverlay();
   updateWorldLabels();
@@ -3829,6 +3968,7 @@ function draw(){
   drawTerminals();
   drawNPCs();
   drawPlayer();
+  drawBullets();
   drawParticles();
   drawHUD();
   drawTransition();
@@ -4015,18 +4155,28 @@ function drawTerminals(){
 function drawNPCs(){
   const t = Date.now();
   const easterEgg = isEasterEgg();
-  for(const npc of level.npcs){
+  for(let _ni=0; _ni<level.npcs.length; _ni++){
+    const npc = level.npcs[_ni];
     npc.timer = (npc.timer||0)+1;
     const bob = Math.sin(npc.timer/20)*1.5;
     const cx = npc.x + 10;
     const cy = npc.y;
     const col = npc.color;
 
+    // Dead NPC — show skull
+    if(isEasterEgg2() && deadNpcs.has(_ni)){
+      ctx.font = '14px serif'; ctx.textAlign='center';
+      ctx.fillText('💀', cx, cy+20);
+      ctx.textAlign='left';
+      continue;
+    }
+
     // Shadow
     ctx.fillStyle = col + '25';
     ctx.beginPath(); ctx.ellipse(cx, cy+28, 9, 4, 0, 0, Math.PI*2); ctx.fill();
 
     // Easter egg mode — anime girls with different designs
+    if(isEasterEgg2()){ drawNinja(ctx, cx, cy, bob); continue; }
     if(easterEgg){ drawAnimeGirl(ctx, cx, cy, bob, col, level.npcs.indexOf(npc)); continue; }
 
     // Role-specific body
@@ -4120,7 +4270,35 @@ function drawPlayer(){
   const skin = getSkinDef(currentSkin);
   skin.draw(ctx, cx, p.y, bob, legSwing, ac);
 
-
+  // Dima easter egg — draw pistol
+  if(isEasterEgg2()){
+    const px2 = p.dir === 'left' ? cx - 14 : cx + 6;
+    const py2 = p.y + 14 + bob;
+    const flip = p.dir === 'left' ? -1 : 1;
+    ctx.save();
+    ctx.translate(px2, py2);
+    ctx.scale(flip, 1);
+    // Grip
+    ctx.fillStyle = '#3a2a1a';
+    ctx.fillRect(0, 4, 5, 7);
+    // Barrel
+    ctx.fillStyle = '#555';
+    ctx.fillRect(2, 0, 10, 4);
+    // Front sight
+    ctx.fillStyle = '#888';
+    ctx.fillRect(11, 0, 2, 2);
+    // Trigger guard
+    ctx.fillStyle = '#444';
+    ctx.fillRect(3, 4, 3, 3);
+    // Muzzle flash only right after shooting
+    if(muzzleFlash > 0){
+      ctx.fillStyle = '#ffcc00';
+      ctx.fillRect(13, -2, 6, 4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(14, -1, 3, 2);
+    }
+    ctx.restore();
+  }
 }
 
 function drawHUD(){
@@ -4165,7 +4343,7 @@ function updateWorldLabels(){
   for(const npc of level.npcs){
     const bob = Math.sin((npc.timer||0)/20)*1.5;
     const el = document.createElement('div');
-    el.textContent = isEasterEgg() ? 'little girl' : npc.label;
+    el.textContent = isEasterEgg2() ? 'Ebola' : isEasterEgg() ? 'little girl' : npc.label;
     el.style.cssText = [
       'position:absolute',
       'font-family:\'Press Start 2P\',monospace',
