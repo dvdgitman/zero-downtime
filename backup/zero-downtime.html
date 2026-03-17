@@ -2721,31 +2721,6 @@ function drawAnimeGirl(ctx, cx, cy, bob, col, variant){
 }
 
 
-function playUwuVoice(text){
-  if(!isEasterEgg()) return;
-  if(!window.speechSynthesis) return;
-  try{
-    window.speechSynthesis.cancel(); // stop any ongoing speech
-    const phrases = [
-      'uwu', 'oniichan', 'yamate', 'kawaii', 'senpai notice me',
-      'uwu what is this', 'hewwo', 'oniichan yamate'
-    ];
-    const say = phrases[Math.floor(Math.random()*phrases.length)];
-    const utt = new SpeechSynthesisUtterance(say);
-    // Pick the highest-pitched female voice available
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v =>
-      /female|woman|girl|zira|samantha|karen|moira|tessa|fiona|victoria/i.test(v.name)
-    ) || voices.find(v => /en/i.test(v.lang)) || voices[0];
-    if(femaleVoice) utt.voice = femaleVoice;
-    utt.pitch = 2.0;   // maximum pitch — very squeaky
-    utt.rate  = 0.85;  // slightly slow — more dramatic
-    utt.volume = 0.7;
-    window.speechSynthesis.speak(utt);
-  } catch(e){}
-}
-
-
 function playUwuSound(){
   if(!soundEnabled) return;
   try{
@@ -3110,7 +3085,7 @@ function nearNPC(){
 }
 
 function openDialogue(npc){
-  if(isEasterEgg()){ playUwuSound(); playUwuVoice(); }
+  if(isEasterEgg()) playUwuSound();
   const lines = isEasterEgg() ? ['Oniichan...\n(ʘᗩʘ\')', 'Yamate kudasai~ uwu', 'Oniichan yamate!! 🌸', 'H-hewwo senpai... (≧◡≦)', 'uwu nani kore...'] : (NPC_DIALOGUE[npc.label] || ["...", "I have nothing to say."]);
   activeDialogue = lines[Math.floor(Math.random()*lines.length)];
   dialogueNPC = npc;
