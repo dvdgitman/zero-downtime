@@ -2639,47 +2639,82 @@ function isEasterEgg(){
   return EASTER_EGG_NAMES.some(n => name.includes(n));
 }
 
-function drawAnimeGirl(ctx, cx, cy, bob, col){
-  // Body — pink dress
-  ctx.fillStyle='#ff9ec4';
-  ctx.fillRect(cx-7,cy+10+bob,14,13);
-  // Dress frills
-  ctx.fillStyle='#ff6aaa';
-  ctx.fillRect(cx-9,cy+18+bob,18,5);
-  // Legs — white socks
+// 5 different anime girl designs keyed by index
+function drawAnimeGirl(ctx, cx, cy, bob, col, variant){
+  const v = (variant||0) % 5;
+
+  // Shared: legs + shoes
   ctx.fillStyle='#f0f0f0';
-  ctx.fillRect(cx-5+1,cy+23+bob,4,7);
-  ctx.fillRect(cx+1,cy+23+bob,4,7);
-  ctx.fillStyle='#222';
-  ctx.fillRect(cx-5+1,cy+28+bob,4,3);
-  ctx.fillRect(cx+1,cy+28+bob,4,3);
-  // Head — skin tone
-  ctx.fillStyle='#f5c8a0';
-  ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
-  // Hair — brown base
-  ctx.fillStyle='#5a2d0c';
-  ctx.fillRect(cx-7,cy-2+bob,14,6);
-  ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
-  // Ponytails
-  ctx.fillStyle='#5a2d0c';
-  ctx.fillRect(cx-9,cy-1+bob,3,10);
-  ctx.fillRect(cx+6,cy-1+bob,3,10);
-  // Hair ribbons
-  ctx.fillStyle=col||'#ff6aaa';
-  ctx.fillRect(cx-10,cy-1+bob,4,3);
-  ctx.fillRect(cx+6,cy-1+bob,4,3);
-  // Eyes — big anime eyes
+  ctx.fillRect(cx-4,cy+23+bob,4,7); ctx.fillRect(cx+1,cy+23+bob,4,7);
+  ctx.fillStyle='#111';
+  ctx.fillRect(cx-4,cy+28+bob,4,3); ctx.fillRect(cx+1,cy+28+bob,4,3);
+
+  if(v === 0){
+    // Pink twintails — classic
+    ctx.fillStyle='#ff9ec4'; ctx.fillRect(cx-7,cy+10+bob,14,13);
+    ctx.fillStyle='#ff6aaa'; ctx.fillRect(cx-9,cy+18+bob,18,5);
+    ctx.fillStyle='#f5c8a0'; ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c0186a'; ctx.fillRect(cx-7,cy-2+bob,14,6);
+    ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#c0186a'; ctx.fillRect(cx-9,cy-1+bob,3,12); ctx.fillRect(cx+6,cy-1+bob,3,12);
+    ctx.fillStyle='#ffeeaa'; ctx.fillRect(cx-10,cy-1+bob,4,3); ctx.fillRect(cx+6,cy-1+bob,4,3);
+  } else if(v === 1){
+    // Blue sailor uniform — short hair
+    ctx.fillStyle='#3a5fc8'; ctx.fillRect(cx-7,cy+10+bob,14,13);
+    ctx.fillStyle='#ffffff'; ctx.fillRect(cx-5,cy+10+bob,10,4);
+    ctx.fillStyle='#c83a3a'; ctx.fillRect(cx-2,cy+10+bob,4,8);
+    ctx.fillStyle='#2a2a5a'; ctx.fillRect(cx-9,cy+18+bob,18,5);
+    ctx.fillStyle='#f5c8a0'; ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1a3a'; ctx.fillRect(cx-7,cy-2+bob,14,6);
+    ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#1a1a3a'; ctx.fillRect(cx-8,cy+2+bob,3,6); ctx.fillRect(cx+5,cy+2+bob,3,6);
+  } else if(v === 2){
+    // Purple magical girl — ahoge hair spike
+    ctx.fillStyle='#9b59b6'; ctx.fillRect(cx-7,cy+10+bob,14,13);
+    ctx.fillStyle='#d7aefb'; ctx.fillRect(cx-9,cy+16+bob,18,7);
+    ctx.fillStyle='#ffe0f0'; ctx.fillRect(cx-7,cy+10+bob,14,4);
+    ctx.fillStyle='#f5c8a0'; ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#7c3aed'; ctx.fillRect(cx-7,cy-2+bob,14,6);
+    ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
+    // Ahoge spike
+    ctx.fillStyle='#7c3aed'; ctx.fillRect(cx-1,cy-9+bob,3,8);
+    ctx.fillRect(cx,cy-11+bob,2,3);
+    // Star clip
+    ctx.fillStyle='#ffd700'; ctx.fillRect(cx-3,cy-2+bob,3,3);
+  } else if(v === 3){
+    // Green sporty girl — side ponytail
+    ctx.fillStyle='#27ae60'; ctx.fillRect(cx-7,cy+10+bob,14,13);
+    ctx.fillStyle='#ffffff'; ctx.fillRect(cx-6,cy+12+bob,12,2); ctx.fillRect(cx-6,cy+16+bob,12,2);
+    ctx.fillStyle='#1a5c30'; ctx.fillRect(cx-9,cy+18+bob,18,5);
+    ctx.fillStyle='#f0d090'; ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c8a000'; ctx.fillRect(cx-7,cy-2+bob,14,6);
+    ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
+    // Side ponytail right
+    ctx.fillStyle='#c8a000'; ctx.fillRect(cx+6,cy-2+bob,4,14);
+    ctx.fillStyle='#ff6600'; ctx.fillRect(cx+6,cy-2+bob,4,3);
+  } else {
+    // Orange shrine maiden — long hair
+    ctx.fillStyle='#e8f0ff'; ctx.fillRect(cx-7,cy+10+bob,14,13);
+    ctx.fillStyle='#e83a3a'; ctx.fillRect(cx-9,cy+12+bob,18,12);
+    ctx.fillStyle='#e8f0ff'; ctx.fillRect(cx-7,cy+10+bob,14,5);
+    ctx.fillStyle='#f5c8a0'; ctx.beginPath(); ctx.arc(cx,cy+5+bob,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#2a1000'; ctx.fillRect(cx-7,cy-2+bob,14,6);
+    ctx.beginPath(); ctx.arc(cx,cy-1+bob,7,Math.PI,0); ctx.fill();
+    // Long flowing hair sides
+    ctx.fillStyle='#2a1000'; ctx.fillRect(cx-9,cy-1+bob,3,18); ctx.fillRect(cx+6,cy-1+bob,3,18);
+    // Hair bow
+    ctx.fillStyle='#e83a3a'; ctx.fillRect(cx-8,cy-3+bob,7,4); ctx.fillRect(cx+1,cy-3+bob,7,4);
+    ctx.fillStyle='#ff8888'; ctx.fillRect(cx-2,cy-2+bob,4,3);
+  }
+
+  // Shared: big anime eyes
   ctx.fillStyle='#1a0a3a';
-  ctx.fillRect(cx-4,cy+3+bob,3,3);
-  ctx.fillRect(cx+1,cy+3+bob,3,3);
-  // Eye shine
+  ctx.fillRect(cx-4,cy+3+bob,3,3); ctx.fillRect(cx+1,cy+3+bob,3,3);
   ctx.fillStyle='#ffffff';
-  ctx.fillRect(cx-3,cy+3+bob,1,1);
-  ctx.fillRect(cx+2,cy+3+bob,1,1);
+  ctx.fillRect(cx-3,cy+3+bob,1,1); ctx.fillRect(cx+2,cy+3+bob,1,1);
   // Blush
-  ctx.fillStyle='#ff9ec480';
-  ctx.fillRect(cx-6,cy+6+bob,3,2);
-  ctx.fillRect(cx+3,cy+6+bob,3,2);
+  ctx.fillStyle='rgba(255,150,180,0.45)';
+  ctx.fillRect(cx-6,cy+6+bob,3,2); ctx.fillRect(cx+3,cy+6+bob,3,2);
   // Smile
   ctx.strokeStyle='#8a4030'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.arc(cx,cy+8+bob,2,0.2,Math.PI-0.2); ctx.stroke();
@@ -3065,7 +3100,7 @@ function openDialogue(npc){
   playSound('interact');
   setTimeout(() => {
     if(dialogueNPC === npc){ el.style.display='none'; dialogueNPC=null; }
-  }, 3500);
+  }, isEasterEgg() ? 7000 : 3500);
 }
 
 // ─── COLLISION ────────────────────────────────────────────────────────────────
@@ -3936,8 +3971,8 @@ function drawNPCs(){
     ctx.fillStyle = col + '25';
     ctx.beginPath(); ctx.ellipse(cx, cy+28, 9, 4, 0, 0, Math.PI*2); ctx.fill();
 
-    // Easter egg mode — anime girls
-    if(easterEgg){ drawAnimeGirl(ctx, cx, cy, bob, col); continue; }
+    // Easter egg mode — anime girls with different designs
+    if(easterEgg){ drawAnimeGirl(ctx, cx, cy, bob, col, level.npcs.indexOf(npc)); continue; }
 
     // Role-specific body
     const role = npc.label || '';
@@ -4075,7 +4110,7 @@ function updateWorldLabels(){
   for(const npc of level.npcs){
     const bob = Math.sin((npc.timer||0)/20)*1.5;
     const el = document.createElement('div');
-    el.textContent = isEasterEgg() ? ['Sakura','Yuki','Hana','Miku','Akane'][level.npcs.indexOf(npc)%5] : npc.label;
+    el.textContent = isEasterEgg() ? 'little girl' : npc.label;
     el.style.cssText = [
       'position:absolute',
       'font-family:\'Press Start 2P\',monospace',
